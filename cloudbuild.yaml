@@ -1,6 +1,6 @@
 steps:
 - name: 'gcr.io/cloud-builders/dockers'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/nekoserver', '.']
-  images: ['gcr.io/$PROJECT_ID/nekoserver']
 options:
   machineType: 'E2_HIGHCPU_8'
+images: ['gcr.io/$PROJECT_ID/nekoserver']
