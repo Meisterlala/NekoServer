@@ -14,8 +14,8 @@ COPY . .
 RUN cargo install --path .
 
 FROM debian:buster-slim
-EXPOSE 8080
+EXPOSE 80
 # Copy binary from builder
 COPY --from=builder /usr/local/cargo/bin/neko_server /usr/local/bin/neko_server
 
-CMD ["neko_server", "--db", "./db.sqlite",  "--port", "8080" ]
+CMD ["neko_server", "--db", "./db.sqlite",  "--port", "80" ]
