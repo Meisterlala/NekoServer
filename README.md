@@ -5,6 +5,6 @@ This Server keeps track of how many images were displayed with [Neko Fans](https
 
 
 
-| It uses that data to create this image: |
+| It uses that data to generate this image: |
 | --- |
-|<img src="https://nekoserver-git-eeov26blya-od.a.run.app/count_image" width="100%" style="border-width: 25px;   border-color: red;   border-style: solid;"/>|
+|<img src="http://35.207.123.107/count_image" width="100%"/>|
