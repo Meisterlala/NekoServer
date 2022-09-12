@@ -1,6 +1,6 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/nekoserver:$BRANCH_NAME', '.']
+  args: ['build', '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME', '.']
 options:
   machineType: 'E2_HIGHCPU_8'
-images: ['gcr.io/$PROJECT_ID/nekoserver:$BRANCH_NAME']
+images: ['europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME']
