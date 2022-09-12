@@ -18,5 +18,4 @@ EXPOSE 8080
 # Copy binary from builder
 COPY --from=builder /usr/local/cargo/bin/neko_server /usr/local/bin/neko_server
 
-ENTRYPOINT ["neko_server"]
-CMD ["--db", "./db.sqlite",  "--port", "8080" ]
+CMD ["neko_server", "--db", "./db.sqlite",  "--port", "8080" ]
