@@ -171,6 +171,7 @@ async fn get_image() -> Result<impl warp::Reply, warp::Rejection> {
     let image = COUNT_IMAGE.get().unwrap().lock().await;
     Ok(Response::builder()
         .header("Content-Type", "image/png")
+        .header("Cache-Control", "no-cache")
         .body(image.get_image()))
 }
 
