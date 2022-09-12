@@ -4,9 +4,15 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Sqlite,
 };
-use std::env;
 use std::io::Write;
 use std::time::Duration;
+use std::{
+    env,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 use tokio::{
     signal,
     sync::{Mutex, OnceCell},
@@ -125,18 +131,19 @@ pub async fn init(port: u16, db_path: &str) {
     // Run the server
     let server = tokio::spawn(async move { warp::serve(routes).run(([0, 0, 0, 0], port)).await });
 
-    // Wait for Ctrl+C
-    match signal::ctrl_c().await {
-        Ok(()) => {}
-        Err(err) => {
-            eprintln!("Unable to listen for shutdown signal: {}", err);
-            // we also shut down in case of error
-        }
+    // Wait for termination signal
+    let term = Arc::new(AtomicBool::new(false));
+    for sig in signal_hook::consts::TERM_SIGNALS {
+        signal_hook::flag::register(*sig, Arc::clone(&term))
+            .expect("Failed to register signal handler");
     }
+    while !term.load(Ordering::Relaxed) {}
 
+    // Shutdown the server
     info!("Shutting down");
 
     // Cleanup
+    POOL.get().unwrap().close().await;
     img_task.abort();
     server.abort();
 }

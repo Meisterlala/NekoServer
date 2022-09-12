@@ -24,6 +24,8 @@ pretty_env_logger = "0.4"
 chrono = "0.4"
 # Command line arguments parsing
 clap = { version = "3.2.20", features = ["derive"] }
+# Graceful shutdown
+signal-hook = "0.3.14"
 
 [dev-dependencies]
 criterion = {version = "0.4", features = ["html_reports"]}
