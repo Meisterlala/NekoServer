@@ -1,4 +1,4 @@
-# Neko Server
+# Neko Fans Server
 
 This Server keeps track of how many images were displayed with [Neko Fans](https://github.com/Meisterlala/NekoFans).
 
