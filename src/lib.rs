@@ -136,7 +136,9 @@ pub async fn init(port: u16, db_path: &str) {
         signal_hook::flag::register(*sig, Arc::clone(&term))
             .expect("Failed to register signal handler");
     }
-    while !term.load(Ordering::Relaxed) {}
+    while !term.load(Ordering::Relaxed) {
+        time::sleep(Duration::from_secs(1)).await;
+    }
 
     // Shutdown the server
     info!("Shutting down");
