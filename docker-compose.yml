@@ -1,0 +1,5 @@
+services:
+  neko_server:
+    build: .
+    ports:
+      - "6969:80"
