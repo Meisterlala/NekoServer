@@ -2,6 +2,9 @@
 name = "neko_server"
 version = "0.1.0"
 edition = "2021"
+[[bin]]
+name = "neko_server"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,9 +28,9 @@ clap = { version = "3.2.20", features = ["derive"] }
 [dev-dependencies]
 criterion = {version = "0.4", features = ["html_reports"]}
 
-[[bench]]
-name = "image_gen"
-harness = false
+#[[bench]]
+#name = "image_gen"
+#harness = false
 
 # Build dependencies optimised for release
 [profile.dev.package."*"]
