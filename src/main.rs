@@ -12,10 +12,16 @@ async fn main() {
 #[clap(author, about, long_about = None)]
 struct Args {
     /// Port to listen on
-    #[clap(short, long, value_parser)]
+    #[clap(short, long, value_parser, default_value = "80")]
     port: u16,
 
     /// Path to the SQLite database
-    #[clap(short, long, value_parser, value_name = "FILE")]
+    #[clap(
+        short,
+        long,
+        value_parser,
+        value_name = "FILE",
+        default_value = "db.sqlite"
+    )]
     db: String,
 }

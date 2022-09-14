@@ -51,7 +51,7 @@ pub async fn init(port: u16, db_path: &str) {
     if env::var_os("RUST_LOG").is_none() {
         env::set_var("RUST_LOG", "neko_server=info");
     }
-    pretty_env_logger::init_timed();
+    env_logger::builder().format_timestamp(None).init();
 
     // Create the Table
     sqlx::query_file!("sql/ImageInfo_crate.sql")

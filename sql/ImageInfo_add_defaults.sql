@@ -8,5 +8,6 @@ VALUES
     ("waifu.pics", 0),
     ("dog ceo", 0),
     ("the cat api", 0),
-    ("twitter", 0),
+    ("twitter search", 0),
+    ("twitter user timeline", 0),
     ("testing", 0);
