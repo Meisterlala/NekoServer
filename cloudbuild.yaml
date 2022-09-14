@@ -1,6 +1,14 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME', '.']
+  entrypoint: 'bash'
+  args: ['-c', 'docker pull europe-docker.pkg.dev/$PROJECT_ID/[nekoserver:$BRANCH_NAME || exit 0']
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+          'build',
+          '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
+          '--cache-from', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
+          '.'
+        ]
 options:
   machineType: 'E2_HIGHCPU_8'
 images: ['europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME']
