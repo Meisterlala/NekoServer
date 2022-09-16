@@ -1,4 +1,4 @@
-# Build rust
+# Rust build environment 
 FROM rust:1.63-bullseye as builder
 
 WORKDIR /usr/src/neko_server
@@ -9,6 +9,10 @@ COPY Cargo.toml .
 RUN sed -i 's#src/main.rs#dummy.rs#' Cargo.toml
 RUN cargo build --release
 RUN sed -i 's#dummy.rs#src/main.rs#' Cargo.toml
+
+# Build
+COPY . .
+RUN cargo install --path .
 
 # Run Server
 FROM debian:bullseye-slim
