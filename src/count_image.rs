@@ -1,5 +1,4 @@
 use image::{ImageBuffer, Rgba};
-use log::info;
 use std::io::Write;
 
 use crate::const_image;

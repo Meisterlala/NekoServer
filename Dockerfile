@@ -1,4 +1,5 @@
-FROM rust:1.63-slim-buster as builder
+# Build rust
+FROM rust:1.63-bullseye as builder
 
 WORKDIR /usr/src/neko_server
 
@@ -9,13 +10,11 @@ RUN sed -i 's#src/main.rs#dummy.rs#' Cargo.toml
 RUN cargo build --release
 RUN sed -i 's#dummy.rs#src/main.rs#' Cargo.toml
 
-# Build
-COPY . .
-RUN cargo install --path .
-
-FROM debian:buster-slim
+# Run Server
+FROM debian:bullseye-slim
 EXPOSE 80
+
 # Copy binary from builder
-COPY --from=builder /usr/local/cargo/bin/neko_server /usr/local/bin/neko_server
+COPY --from=builder /usr/local/cargo/bin/neko_server /usr/local/bin
 
 CMD ["neko_server", "--db", "./db.sqlite",  "--port", "80" ]

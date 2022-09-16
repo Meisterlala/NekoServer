@@ -1,4 +1,3 @@
-
 use log::info;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -12,10 +11,7 @@ use std::{
         Arc,
     },
 };
-use tokio::{
-    sync::OnceCell,
-    time,
-};
+use tokio::{sync::OnceCell, time};
 use warp::{http::Response, hyper::StatusCode, reply, Filter};
 
 mod count_image;
@@ -51,22 +47,6 @@ pub async fn init(port: u16, db_path: &str) {
     .await
     .expect("Failed to create database pool");
 
-
-    // Update the image from the database
-    let update_task = tokio::spawn(async {
-        let mut interval = time::interval(image_cache::UPDATE_INTERVAL);
-        loop {
-            interval.tick().await;
-            let counts = sqlx::query!("SELECT count FROM ImageInfo")
-                .fetch_all(POOL.get().unwrap())
-                .await
-                .expect("Failed to Image Count Sum from DB");
-
-            let sum: u128 = counts.iter().map(|count| count.count as u128).sum();
-            IMAGE_CACHE.update_total_image(sum).await;
-        }
-    });
-
     // Create Logger
     if env::var_os("RUST_LOG").is_none() {
         env::set_var("RUST_LOG", "neko_server=info");
@@ -88,6 +68,21 @@ pub async fn init(port: u16, db_path: &str) {
         .await
         .unwrap();
 
+    // Update the image from the database
+    let update_task = tokio::spawn(async {
+        let mut interval = time::interval(image_cache::UPDATE_INTERVAL);
+        loop {
+            interval.tick().await;
+            let counts = sqlx::query!("SELECT count FROM ImageInfo")
+                .fetch_all(POOL.get().unwrap())
+                .await
+                .expect("Failed to Image Count Sum from DB");
+
+            let sum: u128 = counts.iter().map(|count| count.count as u128).sum();
+            IMAGE_CACHE.update_total_image(sum).await;
+        }
+    });
+
     // Get list of Sources in the DB
     let sources = sqlx::query!("SELECT name FROM ImageInfo")
         .fetch_all(POOL.get().unwrap())
@@ -108,7 +103,8 @@ pub async fn init(port: u16, db_path: &str) {
                 .and(warp::path(name_snake.clone()))
                 .and(warp::post())
                 .and(warp::path::param())
-                .and_then(move |count| add(name.clone(), count))
+                .and(warp::header::optional::<String>("Authorization"))
+                .and_then(move |count, agent| add(name.clone(), count, agent))
                 .or(warp::path("add")
                     .and(warp::path(name_snake))
                     .and(warp::post())
@@ -144,10 +140,28 @@ pub async fn init(port: u16, db_path: &str) {
         .and(warp::path::param())
         .and_then(get_count_image);
 
+    // Add a default route to display server verison
+    let index = warp::path::end().map(|| {
+        reply::html(format!(
+            r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>Neko Server</title>
+    </head>
+    <body>
+        <h1 style="text-align: center;font-size:10vw">Neko Server</h1>
+        <p style="text-align: center;font-size:3vw">Version: {}</p>
+    </body>
+</html>"#,
+            env!("CARGO_PKG_VERSION")
+        ))
+    });
+
     // Combine all Filters
     let routes = get_image
         .or(add_routes)
         .or(get_count)
+        .or(index)
         .with(warp::log("neko_server"));
 
     // Run the server
@@ -172,7 +186,22 @@ pub async fn init(port: u16, db_path: &str) {
     server.abort();
 }
 
-async fn add(name: String, count: u8) -> Result<impl warp::Reply, warp::Rejection> {
+async fn add(
+    name: String,
+    count: u8,
+    agent: Option<String>,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    // Check for correct header
+    match agent {
+        Some(agent) if agent.contains("NekoFans") => (),
+        _ => {
+            return Ok(reply::with_status(
+                "Valid request, but unauthorized",
+                StatusCode::UNAUTHORIZED,
+            ));
+        }
+    }
+
     if (sqlx::query!(
         r#"
         UPDATE ImageInfo
