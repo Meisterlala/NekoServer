@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use crate::CountImage;
 
 pub const UPDATE_INTERVAL: Duration = Duration::from_secs(60 * 5);
-pub const MAX_CACHE_SIZE: usize = 20000; // About 450MB
+pub const MAX_CACHE_SIZE: usize = 13000; // About 350MB
 
 #[derive(Debug)]
 pub struct ImageCache {
