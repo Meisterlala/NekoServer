@@ -1,11 +1,11 @@
-use log::info;
+use log::{info, warn};
 use std::{collections::HashMap, time::Duration};
 use tokio::sync::Mutex;
 
 use crate::CountImage;
 
 pub const UPDATE_INTERVAL: Duration = Duration::from_secs(60 * 5);
-pub const MAX_CACHE_SIZE: usize = 5000;
+pub const MAX_CACHE_SIZE: usize = 20000; // About 450MB
 
 #[derive(Debug)]
 pub struct ImageCache {
@@ -50,6 +50,7 @@ impl ImageCache {
         let mut map = self.count_images.lock().await;
         if map.len() >= MAX_CACHE_SIZE {
             // Cleare the cache
+            warn!("Clearing cache");
             map.clear();
         }
         map.insert(count, img.clone());
