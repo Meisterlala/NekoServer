@@ -103,7 +103,7 @@ pub async fn init(port: u16, db_path: &str) {
                 .and(warp::path(name_snake.clone()))
                 .and(warp::post())
                 .and(warp::path::param())
-                .and(warp::header::optional::<String>("Authorization"))
+                .and(warp::header::optional::<String>("User-Agent"))
                 .and_then(move |count, agent| add(name.clone(), count, agent))
                 .or(warp::path("add")
                     .and(warp::path(name_snake))

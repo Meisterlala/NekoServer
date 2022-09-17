@@ -5,8 +5,8 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
           'build',
-          '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
           '--cache-from', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
+          '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
           '.'
         ]
 options:
