@@ -1,13 +1,10 @@
 use log::info;
-use std::{
-    collections::HashMap,
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 use tokio::sync::Mutex;
 
 use crate::CountImage;
 
-pub const UPDATE_INTERVAL: Duration = Duration::from_secs(60 * 15);
+pub const UPDATE_INTERVAL: Duration = Duration::from_secs(60 * 5);
 pub const MAX_CACHE_SIZE: usize = 5000;
 
 #[derive(Debug)]
