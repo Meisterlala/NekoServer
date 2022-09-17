@@ -7,10 +7,9 @@ steps:
     - "BUILDKIT_INLINE_CACHE=1"
 - name: 'gcr.io/cloud-builders/docker'
   args: [
-          'build',
+          'buildx', 'build',
           '--cache-from', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
           '--cache-to', 'type=inline',
-          '--build-arg', 'BUILDKIT_INLINE_CACHE=1',
           '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
           '.'
         ]
