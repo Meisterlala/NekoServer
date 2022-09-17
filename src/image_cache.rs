@@ -1,4 +1,4 @@
-use log::{info, warn};
+use log::{info, warn, debug};
 use std::{collections::HashMap, time::Duration};
 use tokio::sync::Mutex;
 
@@ -45,7 +45,7 @@ impl ImageCache {
 
         // Release Lock while generating image
         let img = CountImage::from_count(count);
-        info!("Generated image for {}", count);
+        debug!("Generated image for {}", count);
 
         let mut map = self.count_images.lock().await;
         if map.len() >= MAX_CACHE_SIZE {
