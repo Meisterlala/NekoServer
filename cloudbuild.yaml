@@ -9,7 +9,8 @@ steps:
   args: [
           'build',
           '--cache-from', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
-          '--build-arg', 'BUILDKIT_INLINE_CACHE=',
+          '--cache-to', 'type=inline',
+          '--build-arg', 'BUILDKIT_INLINE_CACHE=1',
           '-t', 'europe-docker.pkg.dev/$PROJECT_ID/docker/nekoserver:$BRANCH_NAME',
           '.'
         ]
