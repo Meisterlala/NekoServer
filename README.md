@@ -3,6 +3,7 @@
 This Server keeps track of how many images were displayed with the [Neko Fans](https://github.com/Meisterlala/NekoFans) plugin.
 
 # API
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/23047093-1b309b0f-b56c-404e-9ff0-7321b09ae2c2?action=collection%2Ffork&collection-url=entityId%3D23047093-1b309b0f-b56c-404e-9ff0-7321b09ae2c2%26entityType%3Dcollection%26workspaceId%3D3f8f09fb-fa15-4552-bd71-a6644cd4e11e)
 
 | `http://34.149.0.8/count_total` Generates the total download count from every user |
 | --- |
