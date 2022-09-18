@@ -1,8 +1,6 @@
 use log::info;
-use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
-    Pool, Sqlite,
-};
+use redis::aio::ConnectionManager;
+use redis::AsyncCommands;
 use std::time::Duration;
 use std::{
     env,
@@ -11,7 +9,7 @@ use std::{
         Arc,
     },
 };
-use tokio::{sync::OnceCell, time};
+use tokio::time;
 use warp::{http::Response, hyper::StatusCode, reply, Filter};
 
 mod count_image;
@@ -22,31 +20,26 @@ use image_cache::ImageCache;
 
 mod const_image;
 
-// Pool of connections to the database
-static POOL: OnceCell<Pool<Sqlite>> = OnceCell::const_new();
+const IMAGE_SOURCES: [&str; 11] = [
+    "nekos.life",
+    "pic.re",
+    "shibe.online",
+    "catboys",
+    "waifu.im",
+    "waifu.pics",
+    "dog_ceo",
+    "the_cat_api",
+    "twitter_search",
+    "twitter_user_timeline",
+    "testing",
+];
 
 lazy_static::lazy_static! {
     // Cache of images
     static ref IMAGE_CACHE: ImageCache = ImageCache::new();
 }
 
-pub async fn init(port: u16, db_path: &str) {
-    // Create the database pool
-    POOL.get_or_try_init(|| async {
-        SqlitePoolOptions::new()
-            .max_connections(5)
-            .connect_with(
-                SqliteConnectOptions::new()
-                    .filename(db_path)
-                    .create_if_missing(true)
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .synchronous(SqliteSynchronous::Normal),
-            )
-            .await
-    })
-    .await
-    .expect("Failed to create database pool");
-
+pub async fn init(port: u16) {
     // Create Logger
     if env::var_os("RUST_LOG").is_none() {
         env::set_var("RUST_LOG", "neko_server=info");
@@ -56,57 +49,59 @@ pub async fn init(port: u16, db_path: &str) {
     }
     env_logger::builder().format_timestamp(None).init();
 
-    // Create the Table
-    sqlx::query_file!("sql/ImageInfo_crate.sql")
-        .execute(POOL.get().unwrap())
+    // Database connection
+    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let redis_client = redis::Client::open(redis_url).expect("Incorrect Redis URL");
+    let redis = ConnectionManager::new(redis_client)
         .await
-        .unwrap();
-
-    // Add Default Data
-    sqlx::query_file!("sql/ImageInfo_add_defaults.sql")
-        .execute(POOL.get().unwrap())
-        .await
-        .unwrap();
+        .expect("Failed to connect to Redis");
+    {
+        let mut conn = redis.clone();
+        let check: Result<(), _> = conn.set("auth_test", "success").await;
+        check.expect("Failed to connect to Redis");
+    }
 
     // Update the image from the database
-    let update_task = tokio::spawn(async {
+    let mut redis_clone = redis.clone();
+    let update_task = tokio::spawn(async move {
         let mut interval = time::interval(image_cache::UPDATE_INTERVAL);
         loop {
             interval.tick().await;
-            let counts = sqlx::query!("SELECT count FROM ImageInfo")
-                .fetch_all(POOL.get().unwrap())
-                .await
-                .expect("Failed to Image Count Sum from DB");
 
-            let sum: u128 = counts.iter().map(|count| count.count as u128).sum();
-            IMAGE_CACHE.update_total_image(sum).await;
+            let mut pipe = redis::pipe();
+            pipe.atomic();
+            for source in IMAGE_SOURCES.iter() {
+                pipe.get(*source);
+            }
+            let results = pipe
+                .query_async::<_, Vec<Option<u64>>>(&mut redis_clone)
+                .await;
+
+            if results.is_err() {
+                info!("Failed to get image count from Redis");
+                break;
+            }
+            let sum: u64 = results.unwrap().into_iter().flatten().sum();
+
+            IMAGE_CACHE.update_total_image(sum as u128).await;
         }
     });
 
-    // Get list of Sources in the DB
-    let sources = sqlx::query!("SELECT name FROM ImageInfo")
-        .fetch_all(POOL.get().unwrap())
-        .await
-        .unwrap();
-
-    // Create a filter for each entry
-    let add_routes = sources
+    // Create a filter for each Imagesource
+    let add_routes = IMAGE_SOURCES
         .iter()
-        .map(|source| {
-            // Convert name to snake_case
-            let name = source.name.clone();
-            let name_snake = name.replace(' ', "_");
-            let name_snake = name_snake.to_lowercase();
-            info!("Adding route for {}", &name_snake);
+        .map(|name| {
+            info!("Adding route for {}", name);
             // Add the path /add/<name_snake>/:count
             warp::path("add")
-                .and(warp::path(name_snake.clone()))
+                .and(warp::path(name))
                 .and(warp::post())
                 .and(warp::path::param())
                 .and(warp::header::optional::<String>("User-Agent"))
-                .and_then(move |count, agent| add(name.clone(), count, agent))
+                .and(with_redis(redis.clone()))
+                .and_then(move |count, agent, redis| add(name, count, agent, redis))
                 .or(warp::path("add")
-                    .and(warp::path(name_snake))
+                    .and(warp::path(name))
                     .and(warp::post())
                     .and_then(|| async {
                         Ok::<_, warp::Rejection>(
@@ -181,15 +176,15 @@ pub async fn init(port: u16, db_path: &str) {
     info!("Shutting down");
 
     // Cleanup
-    POOL.get().unwrap().close().await;
     update_task.abort();
     server.abort();
 }
 
 async fn add(
-    name: String,
+    name: &str,
     count: u8,
     agent: Option<String>,
+    mut redis: ConnectionManager,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     // Check for correct header
     match agent {
@@ -202,22 +197,12 @@ async fn add(
         }
     }
 
-    if (sqlx::query!(
-        r#"
-        UPDATE ImageInfo
-        SET Count = Count + ?
-        WHERE Name = ?
-        "#,
-        count,
-        name
-    )
-    .execute(POOL.get().unwrap())
-    .await)
-        .is_ok()
-    {
-        Ok(reply::with_status("OK", StatusCode::OK))
-    } else {
-        Ok(reply::with_status("", StatusCode::NOT_MODIFIED))
+    // Increment the count
+    let r: Result<(), redis::RedisError> = redis.incr(name, count.to_string()).await;
+
+    match r {
+        Ok(_) => Ok(reply::with_status("OK", StatusCode::OK)),
+        Err(_) => Ok(reply::with_status("", StatusCode::NOT_MODIFIED)),
     }
 }
 
@@ -232,4 +217,10 @@ async fn get_count_image(count: u128) -> Result<impl warp::Reply, warp::Rejectio
     Ok(Response::builder()
         .header("Content-Type", "image/png")
         .body(IMAGE_CACHE.get_count(count).await))
+}
+
+fn with_redis(
+    connection: ConnectionManager,
+) -> impl Filter<Extract = (ConnectionManager,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || connection.clone())
 }

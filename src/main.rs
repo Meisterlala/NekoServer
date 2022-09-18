@@ -1,11 +1,15 @@
+use std::env;
+
 use clap::Parser;
 use neko_server::init;
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-
-    init(args.port, &args.db).await
+    if let Some(val) = args.redis {
+        env::set_var("REDIS_URL", val);
+    }
+    init(args.port).await
 }
 
 #[derive(Parser, Debug)]
@@ -15,13 +19,7 @@ struct Args {
     #[clap(short, long, value_parser, default_value = "80")]
     port: u16,
 
-    /// Path to the SQLite database
-    #[clap(
-        short,
-        long,
-        value_parser,
-        value_name = "FILE",
-        default_value = "db.sqlite"
-    )]
-    db: String,
+    /// Redis URL
+    #[clap(short, long, value_parser)]
+    redis: Option<String>,
 }

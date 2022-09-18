@@ -1,4 +1,4 @@
-use log::{info, warn, debug};
+use log::{debug, info, warn};
 use std::{collections::HashMap, time::Duration};
 use tokio::sync::Mutex;
 
