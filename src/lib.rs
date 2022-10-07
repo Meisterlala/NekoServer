@@ -47,7 +47,10 @@ pub async fn init(port: u16) {
     if env::var_os("RUST_LOG_STYLE").is_none() {
         env::set_var("RUST_LOG_STYLE", "never");
     }
-    env_logger::builder().format_timestamp(None).init();
+    env_logger::builder()
+        .format_timestamp(None)
+        .target(env_logger::Target::Stdout)
+        .init();
 
     // Database connection
     let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
@@ -158,6 +161,26 @@ pub async fn init(port: u16) {
         .or(get_count)
         .or(index)
         .with(warp::log("neko_server"));
+
+    // Default route
+    let error_log = warp::log::custom(|info| {
+        eprintln!(
+            "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?}",
+            info.method(),
+            info.path(),
+            info.status(),
+            info.user_agent().unwrap_or("no agent"),
+            info.elapsed()
+        );
+    });
+    let routes = routes.or(warp::any()
+        .map(|| {
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("Not Found. This incident will be reported.".to_string())
+                .unwrap()
+        })
+        .with(error_log));
 
     // Run the server
     let server = tokio::spawn(async move { warp::serve(routes).run(([0, 0, 0, 0], port)).await });
