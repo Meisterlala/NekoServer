@@ -6,16 +6,16 @@ This Server keeps track of how many images were displayed with the [Neko Fans](h
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/23047093-1b309b0f-b56c-404e-9ff0-7321b09ae2c2?action=collection%2Ffork&collection-url=entityId%3D23047093-1b309b0f-b56c-404e-9ff0-7321b09ae2c2%26entityType%3Dcollection%26workspaceId%3D3f8f09fb-fa15-4552-bd71-a6644cd4e11e)
 
-| `http://34.149.0.8/count_total` Generates the total download count from every user |
+| `https://api.nekofans.net/count_total` Generates the total download count from every user |
 | --- |
-| ![total](http://34.149.0.8/count_total) |
+| ![total](https://api.nekofans.net/count_total) |
 
-|      | `http://34.149.0.8/count/123` Generates an image with that number |
+|      | `https://api.nekofans.net/count/123` Generates an image with that number |
 | ---  | --- |
-| 420  | ![420](http://34.149.0.8/count/420) |
-| 69   | ![69](http://34.149.0.8/count/69) |
-| 1337 | ![1337](http://34.149.0.8/count/1337) |
-| 314159 | ![314159](http://34.149.0.8/count/314159) |
+| 420  | ![420](https://api.nekofans.net/count/420) |
+| 69   | ![69](https://api.nekofans.net/count/69) |
+| 1337 | ![1337](https://api.nekofans.net/count/1337) |
+| 314159 | ![314159](https://api.nekofans.net/count/314159) |
 
 ## The technology used to run the server
 
