@@ -20,8 +20,9 @@ use image_cache::ImageCache;
 
 mod const_image;
 
-const IMAGE_SOURCES: [&str; 11] = [
+const IMAGE_SOURCES: [&str; 12] = [
     "nekos.life",
+    "nekos.best",
     "pic.re",
     "shibe.online",
     "catboys",
