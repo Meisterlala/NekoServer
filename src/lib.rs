@@ -157,15 +157,23 @@ pub async fn init(port: u16) {
     });
 
     // Combine all Filters
-    let routes = get_image
-        .or(add_routes)
-        .or(get_count)
-        .or(index)
-        .with(warp::log("neko_server"));
+    let routes = get_image.or(add_routes).or(get_count).or(index);
+
+    // Add logger
+    let routes = routes.with(warp::log::custom(|info| {
+        log::info!(
+            "{} {} - Status: {} - Agent: {} - Time: {:?}",
+            info.method(),
+            info.path(),
+            info.status(),
+            info.user_agent().unwrap_or("no agent"),
+            info.elapsed()
+        );
+    }));
 
     // Default route
     let error_log = warp::log::custom(|info| {
-        eprintln!(
+        log::error!(
             "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?}",
             info.method(),
             info.path(),
