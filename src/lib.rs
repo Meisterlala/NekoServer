@@ -110,7 +110,7 @@ pub async fn init(port: u16) {
                 .await;
 
             if results.is_err() {
-                log::error!("Failed to get image count from Redis");
+                log::error!(target: "history", "Failed to get image count from Redis");
                 continue;
             }
             let sum: u64 = results.unwrap().into_iter().flatten().sum();
@@ -122,11 +122,11 @@ pub async fn init(port: u16) {
             // Save to Redis
             let result: Result<(), redis::RedisError> = redis_clone.set(key_name, sum).await;
             if result.is_err() {
-                log::error!("Failed to save history to Redis");
+                log::error!(target: "history", "Failed to save history to Redis");
                 continue;
             }
 
-            log::info!("Saved history of {} downloads on {} to Redis", sum, date);
+            log::info!(target: "history", "Saved history of {} downloads on {} to Redis", sum, date);
         }
     });
 
