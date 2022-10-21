@@ -1,3 +1,4 @@
+use image::error;
 use log::info;
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
@@ -82,12 +83,48 @@ pub async fn init(port: u16) {
                 .await;
 
             if results.is_err() {
-                info!("Failed to get image count from Redis");
-                break;
+                log::error!("Failed to get image count from Redis");
+                continue;
             }
             let sum: u64 = results.unwrap().into_iter().flatten().sum();
 
             IMAGE_CACHE.update_total_image(sum as u128).await;
+        }
+    });
+
+    // Save historical data
+    let mut redis_clone = redis.clone();
+    let history_task = tokio::spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(60 * 60)); // 1 hours
+        loop {
+            interval.tick().await;
+
+            // Get current sum
+            let mut pipe = redis::pipe();
+            pipe.atomic();
+            for source in IMAGE_SOURCES.iter() {
+                pipe.get(*source);
+            }
+            let results = pipe
+                .query_async::<_, Vec<Option<u64>>>(&mut redis_clone)
+                .await;
+
+            if results.is_err() {
+                log::error!("Failed to get image count from Redis");
+                continue;
+            }
+            let sum: u64 = results.unwrap().into_iter().flatten().sum();
+
+            // Get Date and Key name
+            let date = chrono::Utc::now().format("%Y%m%d").to_string();
+            let key_name = format!("history:{}", date);
+
+            // Save to Redis
+            let result: Result<(), redis::RedisError> = redis_clone.set(key_name, sum).await;
+            if result.is_err() {
+                log::error!("Failed to save history to Redis");
+                continue;
+            }
         }
     });
 
@@ -173,7 +210,7 @@ pub async fn init(port: u16) {
 
     // Default route
     let error_log = warp::log::custom(|info| {
-        log::error!(
+        log::info!(
             "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?}",
             info.method(),
             info.path(),
@@ -214,6 +251,7 @@ pub async fn init(port: u16) {
 
     // Cleanup
     update_task.abort();
+    history_task.abort();
     server.abort();
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "neko_server"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 [[bin]]
 name = "neko_server"
