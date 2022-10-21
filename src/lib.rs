@@ -125,6 +125,8 @@ pub async fn init(port: u16) {
                 log::error!("Failed to save history to Redis");
                 continue;
             }
+
+            log::info!("Saved history of {} downloads on {} to Redis", sum, date);
         }
     });
 
