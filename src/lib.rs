@@ -184,6 +184,11 @@ pub async fn init(port: u16) {
         .with(error_log));
 
     // Run the server
+    info!(
+        "Starting nekoserver version {} on port {}",
+        env!("CARGO_PKG_VERSION"),
+        port
+    );
     let server = tokio::spawn(async move { warp::serve(routes).run(([0, 0, 0, 0], port)).await });
 
     // Wait for termination signal
