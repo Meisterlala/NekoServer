@@ -1,4 +1,3 @@
-use image::error;
 use log::info;
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
@@ -130,6 +129,9 @@ pub async fn init(port: u16) {
             log::info!(target: "history", "Saved history of {} downloads on {} to Redis", sum, date);
         }
     });
+
+    // Print current season
+    info!("Current Season: {}", season_images::seasonal_name());
 
     // Create a filter for each Imagesource
     let add_routes = IMAGE_SOURCES
