@@ -20,6 +20,7 @@ mod image_cache;
 use image_cache::ImageCache;
 
 mod const_image;
+mod season_images;
 
 const IMAGE_SOURCES: [&str; 12] = [
     "nekos.life",

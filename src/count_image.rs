@@ -2,6 +2,7 @@ use image::{ImageBuffer, Rgba};
 use std::io::Write;
 
 use crate::const_image;
+use crate::season_images;
 
 #[derive(Debug, Clone)]
 /// This struct holds the image in memory
@@ -45,8 +46,9 @@ impl CountImage {
         // Generate number
         let number = CountImage::create_count_image(count);
 
-        // Overlay the image
-        let mut base = const_image::HEADER.clone();
+        // Get the seasonal image
+        let mut base = season_images::seasonal_count_total();
+        // Overlay the number
         let pos = (560, ((base.height() - number.height()) / 2) as i64);
         image::imageops::overlay(&mut base, &number, pos.0, pos.1);
 

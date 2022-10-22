@@ -36,4 +36,9 @@ lazy_static::lazy_static! {
             .expect("Could not load header image")
             .to_rgba8()
     };
+    pub static ref HEADER_HALLOWEEN: image::RgbaImage = {
+        image::load_from_memory(include_bytes!("../template/count_halloween.png"))
+            .expect("Could not load header image")
+            .to_rgba8()
+    };
 }
