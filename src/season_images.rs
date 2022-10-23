@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use image::{ImageBuffer, Rgba};
 use log::{debug, error};
 
 use crate::const_image;
@@ -7,19 +6,29 @@ use crate::const_image;
 struct SeasonalImage {
     name: &'static str,
     condition: fn(&Date<Utc>) -> bool,
-    image: fn() -> ImageBuffer<Rgba<u8>, Vec<u8>>,
+    image: fn(&Date<Utc>) -> image::RgbaImage,
 }
 
-static TOTAL_IMAGES: [SeasonalImage; 2] = [
+static TOTAL_IMAGES: [SeasonalImage; 4] = [
     SeasonalImage {
         name: "Halloween",
         condition: is_halloween,
-        image: || const_image::HEADER_HALLOWEEN.clone(),
+        image: |_| const_image::HEADER_HALLOWEEN.clone(),
+    },
+    SeasonalImage {
+        name: "Christmas Advent",
+        condition: |date| date.month() == 12 && date.day() <= 22,
+        image: |date| const_image::HEADER_CHRISTMAS_DAYS[(date.day() - 1) as usize].clone(),
+    },
+    SeasonalImage {
+        name: "Christmas Holliday",
+        condition: |date| date.month() == 12 && date.day() > 22 && date.day() < 28,
+        image: |_| const_image::HEADER_CHRISTMAS.clone(),
     },
     SeasonalImage {
         name: "Default",
         condition: |_| true,
-        image: || const_image::HEADER.clone(),
+        image: |_| const_image::HEADER.clone(),
     },
 ];
 
@@ -28,7 +37,7 @@ pub fn seasonal_count_total() -> image::RgbaImage {
     for img in TOTAL_IMAGES.iter() {
         if (img.condition)(&date) {
             debug!("Using {} image", img.name);
-            return (img.image)();
+            return (img.image)(&date);
         }
     }
     error!("No seasonal image found");
