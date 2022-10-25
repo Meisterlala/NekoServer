@@ -1,4 +1,5 @@
 # Neko Fans Server
+[![Better Uptime Badge](https://betteruptime.com/status-badges/v1/monitor/iomh.svg)](https://betteruptime.com/?utm_source=status_badge)
 
 This Server keeps track of how many images were displayed with the [Neko Fans](https://github.com/Meisterlala/NekoFans) plugin.
 
@@ -20,12 +21,3 @@ This Server keeps track of how many images were displayed with the [Neko Fans](h
 ## The technology used to run the server
 
 Neko Server is written in [Rust](https://www.rust-lang.org/) with the asyc framework [Tokio](https://tokio.rs/) and using [Warp](https://github.com/seanmonstar/warp) as a web server. This is then all bundled in a [Docker container](Dockerfile), which gets automaticly [build](cloudbuild.yaml) with Google Cloud Build. Those images are then pushed to a private Container repository.
-The images get deployed to a [Kubernetes](https://kubernetes.io/) cluter.
-
-An Statefull [Redis](https://redis.io/) cluster acts as a Database.
-
-All this together allows for almost infinite scaling and zero downtime while pushing new changes.
-
-### TODO
-
-Get a real Domain instead of a static IP
