@@ -1,5 +1,5 @@
 # Neko Fans Server
-[![Better Uptime Badge](https://betteruptime.com/status-badges/v1/monitor/iomh.svg)](https://betteruptime.com/?utm_source=status_badge)
+[![Better Uptime Badge](https://betteruptime.com/status-badges/v1/monitor/iomh.svg)](https://status.Nekofans.net)
 
 This Server keeps track of how many images were displayed with the [Neko Fans](https://github.com/Meisterlala/NekoFans) plugin.
 
