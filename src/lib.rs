@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::info;
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
 use std::time::Duration;
