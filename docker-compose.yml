@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  nekoserver:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      REDIS_URL: redis://redis_db:6379
+      RUST_LOG: info, neko_server=trace
+    depends_on:
+      - "redis_db"
+  redis_db:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"

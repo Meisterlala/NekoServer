@@ -1,5 +1,5 @@
 # Rust build environment 
-FROM rust:1.63-bullseye as builder
+FROM rust:bullseye as builder
 
 WORKDIR /usr/src/neko_server
 
@@ -21,4 +21,4 @@ EXPOSE 80
 # Copy binary from builder
 COPY --from=builder /usr/local/cargo/bin/neko_server /usr/local/bin
 
-CMD ["neko_server", "--db", "./db.sqlite",  "--port", "80" ]
+CMD ["neko_server"]

@@ -1,4 +1,4 @@
-use log::info;
+use log::{error, info};
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
 use std::time::Duration;
@@ -55,15 +55,15 @@ pub async fn init(port: u16) {
         .init();
 
     // Database connection
-    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let redis_url: &str = &env::var("REDIS_URL").expect("REDIS_URL must be set");
     let redis_client = redis::Client::open(redis_url).expect("Incorrect Redis URL");
     let redis = ConnectionManager::new(redis_client)
         .await
-        .expect("Failed to connect to Redis");
+        .unwrap_or_else(|_| panic!("Failed to connect to Redis at: {}", redis_url));
     {
         let mut conn = redis.clone();
         let check: Result<(), _> = conn.set("auth_test", "success").await;
-        check.expect("Failed to connect to Redis");
+        check.expect("Failed to execute redis commands");
     }
 
     // Update the image from the database
@@ -215,13 +215,20 @@ pub async fn init(port: u16) {
 
     // Default route
     let error_log = warp::log::custom(|info| {
+        // Header to list
+        let headers: String = info
+            .request_headers()
+            .iter()
+            .map(|(key, value)| format!("{}: {}\n", key, value.to_str().unwrap_or("[empty]")))
+            .collect::<String>();
         log::info!(
-            "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?}",
+            "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?} - Headers: \n{}",
             info.method(),
             info.path(),
             info.status(),
             info.user_agent().unwrap_or("no agent"),
-            info.elapsed()
+            info.elapsed(),
+            headers.trim_end()
         );
     });
     let routes = routes.or(warp::any()
