@@ -203,11 +203,25 @@ pub async fn init(port: u16) {
 
     // Add logger
     let routes = routes.with(warp::log::custom(|info| {
+        // Look for the `x-forwarded-for` header, and if it's not present, fall back to x-real-ip, and if that's not present, fall back to the remote addr.
+        let ip: String = info
+            .request_headers()
+            .get("x-forwarded-for")
+            .or_else(|| info.request_headers().get("x-real-ip"))
+            .map(|ip| ip.to_str().unwrap_or("Invalid Header"))
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                info.remote_addr()
+                    .map(|sa| sa.ip().to_string())
+                    .unwrap_or_else(|| "Unknown".to_owned())
+            });
+
         log::info!(
-            "{} {} - Status: {} - Agent: {} - Time: {:?}",
+            "{} {} - Status: {} - IP: {} - Agent: {} - Time: {:?}",
             info.method(),
             info.path(),
             info.status(),
+            ip,
             info.user_agent().unwrap_or("no agent"),
             info.elapsed()
         );
