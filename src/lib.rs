@@ -197,8 +197,8 @@ pub async fn init(port: u16) {
     <body style="font-family: helvetica;">
         <img src="favicon.ico" style="  position: absolute;top: 50%;transform: translate(0, -50%);margin: 0;width: 20vw;">
         <div style="position: absolute;transform: translate(20vw,-50%);top: 50%;width: 78vw;">
-        <h1 style="text-align: center;font-size:12vw;margin: 0;">Neko Server</h1>
-        <p style="text-align: center;font-size:3vw;margin: 0;">version: {}</p>
+            <h1 style="text-align: center;font-size:12vw;margin: 0;">Neko Server</h1>
+            <p style="text-align: center;font-size:3vw;margin: 0;">version: {}</p>
         </div>
     </body>
 </html>"#,
