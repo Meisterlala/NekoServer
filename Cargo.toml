@@ -1,6 +1,6 @@
 [package]
 name = "neko_server"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 [[bin]]
 name = "neko_server"
@@ -11,11 +11,11 @@ path = "src/main.rs"
 [dependencies]
 # Async
 tokio = { version = "1", features = ["full"] }
-tokio-util = "0.7.4"
+tokio-util = "0.7"
 # Webserver
-warp = "0.3.2"
+warp = "0.3"
 # Interact with Redis Database
-redis = { version = "0.21", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.22", features = ["tokio-comp", "connection-manager"] }
 # Manipulate Images
 image = "0.24"
 # Logging
@@ -23,11 +23,11 @@ log = "0.4"
 env_logger = "0.9"
 chrono = "0.4"
 # Command line arguments parsing
-clap = { version = "3.2.20", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
 # Graceful shutdown
-signal-hook = "0.3.14"
+signal-hook = "0.3.*"
 # Caching
-lazy_static = "1.4.0"
+lazy_static = "1.4.*"
 
 [dev-dependencies]
 criterion = {version = "0.4", features = ["html_reports"] }

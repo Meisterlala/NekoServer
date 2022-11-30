@@ -181,6 +181,11 @@ pub async fn init(port: u16) {
         .and(warp::path::param())
         .and_then(get_count_image);
 
+    // Create a filter for the favicon
+    let favicon = warp::path("favicon.ico")
+        .and(warp::get())
+        .and_then(get_favicon);
+
     // Add a default route to display server verison
     let index = warp::path::end().map(|| {
         reply::html(format!(
@@ -189,9 +194,12 @@ pub async fn init(port: u16) {
     <head>
         <title>Neko Server</title>
     </head>
-    <body>
-        <h1 style="text-align: center;font-size:10vw">Neko Server</h1>
-        <p style="text-align: center;font-size:3vw">Version: {}</p>
+    <body style="font-family: helvetica;">
+        <img src="favicon.ico" style="  position: absolute;top: 50%;transform: translate(0, -50%);margin: 0;width: 20vw;">
+        <div style="position: absolute;transform: translate(20vw,-50%);top: 50%;width: 80vw;">
+        <h1 style="text-align: center;font-size:12vw;margin: 0;">Neko Server</h1>
+        <p style="text-align: center;font-size:3vw;margin: 0;">version: {}</p>
+        </div>
     </body>
 </html>"#,
             env!("CARGO_PKG_VERSION")
@@ -199,7 +207,7 @@ pub async fn init(port: u16) {
     });
 
     // Combine all Filters
-    let routes = get_image.or(add_routes).or(get_count).or(index);
+    let routes = get_image.or(add_routes).or(get_count).or(index).or(favicon);
 
     // Add logger
     let routes = routes.with(warp::log::custom(|info| {
@@ -312,6 +320,15 @@ async fn get_total_image() -> Result<impl warp::Reply, warp::Rejection> {
         .header("Content-Type", "image/png")
         .header("Cache-Control", "no-cache")
         .body(IMAGE_CACHE.get_total().await))
+}
+
+async fn get_favicon() -> Result<impl warp::Reply, warp::Rejection> {
+    Ok(Response::builder()
+        .header("Content-Type", "image/png")
+        .body(unsafe {
+            // SAFETY: We dont care that this is not a valid utf8 string, its binary data
+            String::from_utf8_unchecked(include_bytes!("../assets/favicon.png").to_vec())
+        }))
 }
 
 async fn get_count_image(count: u128) -> Result<impl warp::Reply, warp::Rejection> {
