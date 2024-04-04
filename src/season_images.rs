@@ -5,8 +5,8 @@ use crate::const_image;
 
 struct SeasonalImage {
     name: &'static str,
-    condition: fn(&Date<Utc>) -> bool,
-    image: fn(&Date<Utc>) -> image::RgbaImage,
+    condition: fn(&DateTime<Utc>) -> bool,
+    image: fn(&DateTime<Utc>) -> image::RgbaImage,
 }
 
 static TOTAL_IMAGES: [SeasonalImage; 4] = [
@@ -33,7 +33,7 @@ static TOTAL_IMAGES: [SeasonalImage; 4] = [
 ];
 
 pub fn seasonal_count_total() -> image::RgbaImage {
-    let date = Utc::today();
+    let date = Utc::now();
     for img in TOTAL_IMAGES.iter() {
         if (img.condition)(&date) {
             debug!("Using {} image", img.name);
@@ -45,7 +45,7 @@ pub fn seasonal_count_total() -> image::RgbaImage {
 }
 
 pub fn seasonal_name() -> &'static str {
-    let date = Utc::today();
+    let date = Utc::now();
     for img in TOTAL_IMAGES.iter() {
         if (img.condition)(&date) {
             return img.name;
@@ -54,6 +54,6 @@ pub fn seasonal_name() -> &'static str {
     "Default"
 }
 
-fn is_halloween(date: &Date<Utc>) -> bool {
+fn is_halloween(date: &DateTime<Utc>) -> bool {
     (date.month() == 10 && date.day() >= 19) || (date.month() == 11 && date.day() <= 3)
 }

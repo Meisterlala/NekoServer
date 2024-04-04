@@ -238,11 +238,10 @@ pub async fn init(port: u16) {
     // Default route
     let error_log = warp::log::custom(|info| {
         // Header to list
-        let headers: String = info
-            .request_headers()
-            .iter()
-            .map(|(key, value)| format!("{}: {}\n", key, value.to_str().unwrap_or("[empty]")))
-            .collect::<String>();
+        let mut headers = String::new();
+        for (key, value) in info.request_headers().iter() {
+            headers.push_str(&format!("{}: {}\n", key, value.to_str().unwrap_or("[empty]")));
+        }
         log::info!(
             "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?} - Headers: \n{}",
             info.method(),
