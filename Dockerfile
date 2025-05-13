@@ -1,5 +1,10 @@
 # Rust build environment 
-FROM rust:bullseye as builder
+FROM rust:alpine AS builder
+
+# Install dependencies
+RUN apk add --no-cache \
+    musl-dev \
+    build-base
 
 WORKDIR /usr/src/neko_server
 
@@ -15,7 +20,7 @@ COPY . .
 RUN cargo install --path .
 
 # Run Server
-FROM debian:bullseye-slim
+FROM alpine:latest 
 EXPOSE 80
 
 # Copy binary from builder

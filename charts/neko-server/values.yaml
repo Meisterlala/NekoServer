@@ -1,0 +1,26 @@
+# Default values for Neko Server Helm Chart
+namespace: default
+
+image:
+  image: registry.meisterlala.dev/neko-server
+  tag: latest
+  pullPolicy: Always
+
+configMap:
+  RUST_LOG: "info, neko_server=trace"
+
+# Redis configuration
+redis:
+  persistence:
+    # Storage class to use for the PVC
+    # storageClass: "standard"
+    # Size of the Redis persistent volume
+    size: "2Gi"
+
+resources:
+  limits:
+    memory: 512Mi
+    cpu: 500m
+  requests:
+    memory: 256Mi
+    cpu: 250m

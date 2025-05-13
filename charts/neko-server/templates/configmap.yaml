@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nekoserver-config
+  namespace: {{ .Values.namespace | quote }}
+data:
+  RUST_LOG: "neko_server"
