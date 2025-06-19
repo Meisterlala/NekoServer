@@ -2,7 +2,7 @@
 namespace: default
 
 image:
-  image: registry.meisterlala.dev/neko-server
+  image: ghcr.io/meisterlala/nekoserver:latest
   tag: latest
   pullPolicy: Always
 
