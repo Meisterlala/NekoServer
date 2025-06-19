@@ -46,8 +46,8 @@ jobs:
           type=raw,value=${{ steps.version.outputs.version }}
           # tag with branch name
           type=ref,event=branch
-          # tag with commit sha
-          type=sha
+          # tag with commit sha (full length)
+          type=sha,format=long
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
