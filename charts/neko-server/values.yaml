@@ -2,7 +2,7 @@
 namespace: default
 
 image:
-  image: ghcr.io/meisterlala/nekoserver:latest
+  image: ghcr.io/meisterlala/nekoserver
   tag: latest
   pullPolicy: Always
 
