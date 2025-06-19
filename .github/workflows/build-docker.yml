@@ -2,8 +2,20 @@ name: Build and Push Docker Image
 
 on:
   push:
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - '.github/workflows/build-docker.yml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - '.github/workflows/build-docker.yml'
 
 env:
   REGISTRY: ghcr.io
