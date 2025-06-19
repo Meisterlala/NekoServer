@@ -7,7 +7,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
@@ -29,6 +28,7 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "REGISTRY_IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Extract version from Cargo.toml
         id: version
@@ -96,6 +96,7 @@ jobs:
           VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
+          echo "REGISTRY_IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -126,8 +127,6 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             # tag with branch name
             type=ref,event=branch
-            # tag with commit sha (full length)
-            type=sha,format=long
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
