@@ -96,7 +96,7 @@ impl CountImage {
         // Setup Bufferwriter with a Cursor so we have Seek
         let mut buffer = std::io::BufWriter::new(std::io::Cursor::new(Vec::new()));
         // Write Image to Buffer
-        img.write_to(&mut buffer, image::ImageOutputFormat::Png)
+        img.write_to(&mut buffer, image::ImageFormat::Png)
             .unwrap();
         buffer.flush().unwrap();
         // Extract the written data
