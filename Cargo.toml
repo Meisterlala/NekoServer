@@ -15,7 +15,7 @@ tokio-util = "0.7"
 # Webserver
 warp = "0.4"
 # Interact with Redis Database
-redis = { version = "0.22", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
 # Manipulate Images
 image = "0.24"
 # Logging
