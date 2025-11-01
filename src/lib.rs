@@ -79,7 +79,7 @@ pub async fn init(port: u16) {
                 pipe.get(*source);
             }
             let results = pipe
-                .query_async::<_, Vec<Option<u64>>>(&mut redis_clone)
+                .query_async::<Vec<Option<u64>>>(&mut redis_clone)
                 .await;
 
             if results.is_err() {
@@ -106,7 +106,7 @@ pub async fn init(port: u16) {
                 pipe.get(*source);
             }
             let results = pipe
-                .query_async::<_, Vec<Option<u64>>>(&mut redis_clone)
+                .query_async::<Vec<Option<u64>>>(&mut redis_clone)
                 .await;
 
             if results.is_err() {

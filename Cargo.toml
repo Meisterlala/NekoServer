@@ -15,22 +15,22 @@ tokio-util = "0.7"
 # Webserver
 warp = { version = "0.4", features = ["server"] }
 # Interact with Redis Database
-redis = { version = "0.22", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
 # Manipulate Images
 image = "0.25"
 # Logging
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.11"
 chrono = "0.4"
 # Command line arguments parsing
 clap = { version = "4.0", features = ["derive"] }
 # Graceful shutdown
 signal-hook = "0.3.*"
 # Caching
-lazy_static = "1.4.*"
+lazy_static = "1.5.*"
 
 [dev-dependencies]
-criterion = { version = "0.4", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 
 # Build dependencies optimised for release
 [profile.dev.package."*"]
