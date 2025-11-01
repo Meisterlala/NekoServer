@@ -217,12 +217,8 @@ pub async fn init(port: u16) {
             .get("x-forwarded-for")
             .or_else(|| info.request_headers().get("x-real-ip"))
             .map(|ip| ip.to_str().unwrap_or("Invalid Header"))
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                info.remote_addr()
-                    .map(|sa| sa.ip().to_string())
-                    .unwrap_or_else(|| "Unknown".to_owned())
-            });
+            .unwrap_or_else(|| "Unknown")
+            .to_owned();
 
         log::info!(
             "{} {} - Status: {} - IP: {} - Agent: {} - Time: {:?}",
@@ -240,7 +236,11 @@ pub async fn init(port: u16) {
         // Header to list
         let mut headers = String::new();
         for (key, value) in info.request_headers().iter() {
-            headers.push_str(&format!("{}: {}\n", key, value.to_str().unwrap_or("[empty]")));
+            headers.push_str(&format!(
+                "{}: {}\n",
+                key,
+                value.to_str().unwrap_or("[empty]")
+            ));
         }
         log::info!(
             "SUS REQUEST: {} {} - Status: {} - Agent: {} - Time: {:?} - Headers: \n{}",
@@ -267,7 +267,9 @@ pub async fn init(port: u16) {
         env!("CARGO_PKG_VERSION"),
         port
     );
-    let server = tokio::spawn(async move { warp::serve(routes).run(([0, 0, 0, 0], port)).await });
+    let server = tokio::spawn(
+        warp::serve(routes).run(([0, 0, 0, 0], port))
+    );
 
     // Wait for termination signal
     let term = Arc::new(AtomicBool::new(false));
@@ -318,7 +320,7 @@ async fn get_total_image() -> Result<impl warp::Reply, warp::Rejection> {
     Ok(Response::builder()
         .header("Content-Type", "image/png")
         .header("Cache-Control", "no-cache")
-        .body(IMAGE_CACHE.get_total().await))
+        .body(IMAGE_CACHE.get_total().await.get_image()))
 }
 
 async fn get_favicon() -> Result<impl warp::Reply, warp::Rejection> {
@@ -333,7 +335,7 @@ async fn get_favicon() -> Result<impl warp::Reply, warp::Rejection> {
 async fn get_count_image(count: u128) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(Response::builder()
         .header("Content-Type", "image/png")
-        .body(IMAGE_CACHE.get_count(count).await))
+        .body(IMAGE_CACHE.get_count(count).await.get_image()))
 }
 
 fn with_redis(

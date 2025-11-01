@@ -7,13 +7,13 @@ use crate::season_images;
 #[derive(Debug, Clone)]
 /// This struct holds the image in memory
 pub struct CountImage {
-    body: String,
+    body: Vec<u8>,
 }
 
 impl CountImage {
     /// Returns a Clone of the image
-    pub fn get_image(&self) -> warp::hyper::Body {
-        self.body.clone().into()
+    pub fn get_image(&self) -> Vec<u8> {
+        self.body.clone()
     }
 
     /// Returns a new CountImage
@@ -75,7 +75,7 @@ impl CountImage {
         overlay
     }
 
-    /// Save to Image to the disk (not really needed but nice for debugging)
+    // Save to Image to the disk (not really needed but nice for debugging)
     /*
         pub fn save_image(&self) {
             let file = std::fs::OpenOptions::new()
@@ -91,8 +91,8 @@ impl CountImage {
         }
     */
 
-    /// Convert the image to a String
-    fn img_to_string(img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
+    /// Convert the image to a Vec<u8>
+    fn img_to_string(img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Vec<u8> {
         // Setup Bufferwriter with a Cursor so we have Seek
         let mut buffer = std::io::BufWriter::new(std::io::Cursor::new(Vec::new()));
         // Write Image to Buffer
@@ -100,20 +100,12 @@ impl CountImage {
             .unwrap();
         buffer.flush().unwrap();
         // Extract the written data
-        let data = buffer.into_inner().unwrap().into_inner();
-        // SAFETY: We dont care, that this is not Valid UTF-8. Its binary data
-        unsafe { String::from_utf8_unchecked(data) }
+        buffer.into_inner().unwrap().into_inner()
     }
 }
 
 impl Default for CountImage {
     fn default() -> Self {
         Self::total_new()
-    }
-}
-
-impl From<CountImage> for warp::hyper::Body {
-    fn from(val: CountImage) -> Self {
-        val.body.into()
     }
 }
