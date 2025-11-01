@@ -7,8 +7,12 @@
     {
       "groupName": "Rust Dependencies",
       "groupSlug": "rust-dependencies",
-      "matchManagers": ["cargo"],
-      "matchPackagePatterns": [".*"]
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackageNames": [
+        "/.*/"
+      ]
     }
   ]
 }
