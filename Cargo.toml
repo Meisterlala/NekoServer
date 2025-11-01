@@ -13,7 +13,7 @@ path = "src/main.rs"
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 # Webserver
-warp = "0.3"
+warp = "0.4"
 # Interact with Redis Database
 redis = { version = "0.22", features = ["tokio-comp", "connection-manager"] }
 # Manipulate Images
