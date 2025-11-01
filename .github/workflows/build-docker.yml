@@ -18,6 +18,7 @@ on:
       - 'Cargo.lock'
       - 'Dockerfile'
       - '.github/workflows/build-docker.yml'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
