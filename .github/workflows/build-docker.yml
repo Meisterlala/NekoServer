@@ -138,10 +138,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
-            # set latest tag for tagged releases
+            # set latest for main branch
+             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable={{is_tag}}
-            # tag with version from Cargo.toml
-            type=raw,value=${{ steps.version.outputs.version }},enable={{is_tag}}
+            # version only on tagged commit
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/'  ) }}
             # tag with branch name
             type=ref,event=branch
 
