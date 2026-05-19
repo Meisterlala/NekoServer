@@ -1,6 +1,6 @@
 [package]
 name = "neko_server"
-version = "1.0.6"
+version = "1.0.7"
 edition = "2021"
 [[bin]]
 name = "neko_server"
@@ -25,7 +25,7 @@ chrono = "0.4"
 # Command line arguments parsing
 clap = { version = "4.0", features = ["derive"] }
 # Graceful shutdown
-signal-hook = "0.3.*"
+signal-hook = "0.4"
 # Caching
 lazy_static = "1.5.*"
 
