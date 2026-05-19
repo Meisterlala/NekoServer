@@ -21,10 +21,13 @@ use image_cache::ImageCache;
 mod const_image;
 mod season_images;
 
-const IMAGE_SOURCES: [&str; 12] = [
+const IMAGE_SOURCES: [&str; 15] = [
     "nekos.life",
     "nekos.best",
+    "nekosapi.com",
+    "nekosia.cat",
     "pic.re",
+    "purrbot",
     "shibe.online",
     "catboys",
     "waifu.im",
