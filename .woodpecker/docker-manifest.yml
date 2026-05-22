@@ -83,7 +83,6 @@ steps:
     image: plugins/manifest
     settings:
       spec: manifest.yml
-      username:
-        from_secret: ghcr_username
+      username: meisterlala
       password:
-        from_secret: ghcr_token
+        from_secret: github_token

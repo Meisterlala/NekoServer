@@ -57,9 +57,8 @@ steps:
       repo: ghcr.io/${CI_REPO,,}
       cache: true
       cache_repo: ${CI_REPO,,}/cache
-      username:
-        from_secret: ghcr_username
+      username: meisterlala
       password:
-        from_secret: ghcr_token
+        from_secret: github_token
     when:
       - event: [push, tag, manual]
