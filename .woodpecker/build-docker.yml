@@ -1,0 +1,65 @@
+when:
+  - event: [push, pull_request]
+    path:
+      include:
+        - src/**
+        - Cargo.toml
+        - Cargo.lock
+        - Dockerfile
+        - .woodpecker/build-docker.yml
+        - .woodpecker/docker-manifest.yml
+  - event: [tag, manual]
+
+matrix:
+  include:
+    - platform: linux/amd64
+      arch: amd64
+    - platform: linux/arm64
+      arch: arm64
+
+labels:
+  platform: ${platform}
+
+steps:
+  prepare-tags:
+    image: alpine:latest
+    commands:
+      - apk add --no-cache coreutils sed
+      - VERSION=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+      - ': > .tags'
+      - |
+        if [ "$${CI_PIPELINE_EVENT}" = "tag" ]; then
+          printf '%s-%s\n' "$${VERSION}" "${arch}" >> .tags
+        fi
+      - |
+        if [ -n "$${CI_COMMIT_BRANCH}" ]; then
+          BRANCH_TAG=$$(printf '%s' "$${CI_COMMIT_BRANCH}" | sed -E 's#[^A-Za-z0-9_.-]+#-#g')
+          printf '%s-%s\n' "$${BRANCH_TAG}" "${arch}" >> .tags
+        fi
+      - |
+        if [ "$${CI_PIPELINE_EVENT}" != "pull_request" ] && [ "$${CI_COMMIT_BRANCH}" = "$${CI_REPO_DEFAULT_BRANCH}" ]; then
+          printf 'latest-%s\n' "${arch}" >> .tags
+        fi
+      - sort -u .tags -o .tags
+
+  build-pr:
+    image: woodpeckerci/plugin-kaniko
+    settings:
+      dry-run: true
+      repo: ghcr.io/${CI_REPO,,}
+    when:
+      - event: pull_request
+
+  publish:
+    image: woodpeckerci/plugin-kaniko
+    settings:
+      registry: ghcr.io
+      repo: ghcr.io/${CI_REPO,,}
+      cache: true
+      cache_repo: ${CI_REPO,,}/cache
+      username:
+        from_secret: ghcr_username
+      password:
+        from_secret: ghcr_token
+    when:
+      - event: [push, tag, manual]

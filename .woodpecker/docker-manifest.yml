@@ -1,0 +1,89 @@
+when:
+  - event: push
+    path:
+      include:
+        - src/**
+        - Cargo.toml
+        - Cargo.lock
+        - Dockerfile
+        - .woodpecker/build-docker.yml
+        - .woodpecker/docker-manifest.yml
+  - event: [tag, manual]
+
+depends_on:
+  - build-docker
+
+steps:
+  prepare-manifest:
+    image: alpine:latest
+    commands:
+      - apk add --no-cache sed
+      - VERSION=$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+      - ': > manifest.yml'
+      - |
+        TAGS=""
+        add_tag() {
+          if [ -z "$${TAGS}" ]; then
+            TAGS="$${1}"
+          else
+            TAGS="$${TAGS},$${1}"
+          fi
+        }
+      - |
+        if [ "$${CI_PIPELINE_EVENT}" = "tag" ]; then
+          add_tag "$${VERSION}"
+        fi
+      - |
+        if [ -n "$${CI_COMMIT_BRANCH}" ]; then
+          BRANCH_TAG=$$(printf '%s' "$${CI_COMMIT_BRANCH}" | sed -E 's#[^A-Za-z0-9_.-]+#-#g')
+          add_tag "$${BRANCH_TAG}"
+        fi
+      - |
+        if [ "$${CI_COMMIT_BRANCH}" = "$${CI_REPO_DEFAULT_BRANCH}" ]; then
+          add_tag latest
+        fi
+      - |
+        TARGET_TAG=$$(printf '%s' "$${TAGS}" | cut -d, -f1)
+        EXTRA_TAGS=$$(printf '%s' "$${TAGS}" | cut -s -d, -f2-)
+        if [ -z "$${TARGET_TAG}" ]; then
+          echo "No manifest tags generated"
+          exit 1
+        fi
+      - |
+        if [ -n "$${EXTRA_TAGS}" ]; then
+          cat >> manifest.yml <<EOF
+        image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}
+        tags: [$${EXTRA_TAGS}]
+        manifests:
+          - image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}-amd64
+            platform:
+              architecture: amd64
+              os: linux
+          - image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}-arm64
+            platform:
+              architecture: arm64
+              os: linux
+        EOF
+        else
+          cat >> manifest.yml <<EOF
+        image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}
+        manifests:
+          - image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}-amd64
+            platform:
+              architecture: amd64
+              os: linux
+          - image: ghcr.io/$${CI_REPO,,}:$${TARGET_TAG}-arm64
+            platform:
+              architecture: arm64
+              os: linux
+        EOF
+        fi
+
+  publish:
+    image: plugins/manifest
+    settings:
+      spec: manifest.yml
+      username:
+        from_secret: ghcr_username
+      password:
+        from_secret: ghcr_token
