@@ -4,3 +4,6 @@
 .cache
 Dockerfile
 /tests
+
+__pycache__/
+*.py[cod]

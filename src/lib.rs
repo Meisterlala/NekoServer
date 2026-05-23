@@ -19,6 +19,7 @@ mod image_cache;
 use image_cache::ImageCache;
 
 mod const_image;
+mod gallery_dl;
 mod season_images;
 
 const IMAGE_SOURCES: [&str; 15] = [
@@ -81,9 +82,7 @@ pub async fn init(port: u16) {
             for source in IMAGE_SOURCES.iter() {
                 pipe.get(*source);
             }
-            let results = pipe
-                .query_async::<Vec<Option<u64>>>(&mut redis_clone)
-                .await;
+            let results = pipe.query_async::<Vec<Option<u64>>>(&mut redis_clone).await;
 
             if results.is_err() {
                 log::error!("Failed to get image count from Redis");
@@ -108,9 +107,7 @@ pub async fn init(port: u16) {
             for source in IMAGE_SOURCES.iter() {
                 pipe.get(*source);
             }
-            let results = pipe
-                .query_async::<Vec<Option<u64>>>(&mut redis_clone)
-                .await;
+            let results = pipe.query_async::<Vec<Option<u64>>>(&mut redis_clone).await;
 
             if results.is_err() {
                 log::error!(target: "history", "Failed to get image count from Redis");
@@ -189,6 +186,16 @@ pub async fn init(port: u16) {
         .and(warp::get())
         .and_then(get_favicon);
 
+    // Create a guarded gallery-dl JSON query endpoint
+    let gallery_query = warp::path("gallery")
+        .and(warp::path("query"))
+        .and(warp::post())
+        .and(warp::header::optional::<String>("authorization"))
+        .and(warp::body::content_length_limit(16 * 1024))
+        .and(warp::body::json())
+        .and(with_redis(redis.clone()))
+        .and_then(gallery_dl::query);
+
     // Add a default route to display server verison
     let index = warp::path::end().map(|| {
         reply::html(format!(
@@ -210,7 +217,12 @@ pub async fn init(port: u16) {
     });
 
     // Combine all Filters
-    let routes = get_image.or(add_routes).or(get_count).or(index).or(favicon);
+    let routes = get_image
+        .or(add_routes)
+        .or(get_count)
+        .or(gallery_query)
+        .or(index)
+        .or(favicon);
 
     // Add logger
     let routes = routes.with(warp::log::custom(|info| {
@@ -270,9 +282,7 @@ pub async fn init(port: u16) {
         env!("CARGO_PKG_VERSION"),
         port
     );
-    let server = tokio::spawn(
-        warp::serve(routes).run(([0, 0, 0, 0], port))
-    );
+    let server = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
 
     // Wait for termination signal
     let term = Arc::new(AtomicBool::new(false));

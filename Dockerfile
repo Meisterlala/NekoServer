@@ -20,7 +20,7 @@ COPY . .
 RUN cargo install --path .
 
 # Run Server
-FROM alpine:latest 
+FROM alpine:latest
 EXPOSE 80
 
 # Copy binary from builder

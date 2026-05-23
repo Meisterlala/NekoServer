@@ -1,3 +1,6 @@
 /target
 image.png
 template/**.psd
+
+__pycache__/
+*.py[cod]

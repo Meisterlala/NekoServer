@@ -48,6 +48,10 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-url
+            - name: GALLERY_DL_WORKER_URL
+              value: "http://127.0.0.1:8090/query"
+            - name: GALLERY_DL_CACHE_TTL_SECONDS
+              value: {{ .Values.galleryDl.cacheTtlSeconds | quote }}
           resources:
             limits:
               memory: {{ .Values.resources.limits.memory | quote }}
@@ -55,3 +59,19 @@ spec:
             requests:
               memory: {{ .Values.resources.requests.memory | quote }}
               cpu: {{ .Values.resources.requests.cpu | quote }}
+        - name: gallery-dl-worker
+          image: "{{ .Values.galleryDlWorker.image }}:{{ .Values.galleryDlWorker.tag }}"
+          imagePullPolicy: {{ .Values.galleryDlWorker.pullPolicy | quote }}
+          env:
+            - name: MAX_CONCURRENT_JOBS
+              value: {{ .Values.galleryDlWorker.maxConcurrentJobs | quote }}
+          ports:
+            - name: gallery-worker
+              containerPort: 8090
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 500m
+            requests:
+              memory: 50Mi
+              cpu: 50m

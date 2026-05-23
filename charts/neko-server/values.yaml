@@ -6,6 +6,15 @@ image:
   tag: latest
   pullPolicy: Always
 
+galleryDlWorker:
+  image: ghcr.io/meisterlala/nekoserver-gallery-dl-worker
+  tag: latest
+  pullPolicy: Always
+  maxConcurrentJobs: 2
+
+galleryDl:
+  cacheTtlSeconds: 900
+
 configMap:
   RUST_LOG: "info, neko_server=trace"
 

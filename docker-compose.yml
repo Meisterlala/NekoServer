@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   nekoserver:
     build: .
@@ -6,9 +5,18 @@ services:
       - "8080:80"
     environment:
       REDIS_URL: redis://redis_db:6379
+      GALLERY_DL_WORKER_URL: http://gallery_dl_worker:8090/query
+      GALLERY_DL_CACHE_TTL_SECONDS: 900
       RUST_LOG: info, neko_server=trace
     depends_on:
       - "redis_db"
+      - "gallery_dl_worker"
+  gallery_dl_worker:
+    build: ./gallery-dl-worker
+    ports:
+      - "8090:8090"
+    environment:
+      MAX_CONCURRENT_JOBS: 2
   redis_db:
     image: "redis:alpine"
     ports:
