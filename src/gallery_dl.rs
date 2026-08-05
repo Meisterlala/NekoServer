@@ -19,7 +19,8 @@ const COMMAND_TIMEOUT: Duration = Duration::from_secs(20);
 
 #[derive(Deserialize)]
 pub struct GalleryQuery {
-    source: String,
+    source: Option<String>,
+    url: Option<String>,
     tags: Option<Vec<String>>,
     rating: Option<String>,
     limit: Option<u16>,
@@ -36,35 +37,62 @@ struct WorkerRequest<'a> {
     args: Vec<String>,
 }
 
+#[derive(Serialize)]
+struct GalleryResponse {
+    items: Vec<GalleryItem>,
+    errors: Vec<GalleryExtractorError>,
+}
+
+#[derive(Serialize)]
+struct GalleryItem {
+    url: Option<String>,
+    source: Option<String>,
+    category: Option<String>,
+    subcategory: Option<String>,
+    id: Option<serde_json::Value>,
+    title: Option<String>,
+    filename: Option<String>,
+    extension: Option<String>,
+    file_url: Option<String>,
+    preview_url: Option<String>,
+    sample_url: Option<String>,
+    width: Option<u64>,
+    height: Option<u64>,
+    rating: Option<String>,
+    score: Option<i64>,
+    tags: Option<serde_json::Value>,
+    created_at: Option<serde_json::Value>,
+    metadata: serde_json::Value,
+}
+
+#[derive(Serialize)]
+struct GalleryExtractorError {
+    error: Option<String>,
+    message: Option<String>,
+    metadata: serde_json::Value,
+}
+
+struct GalleryTarget {
+    cache_source: String,
+    cache_terms: Vec<String>,
+    url: String,
+}
+
 pub async fn query(
-    auth: Option<String>,
     request: GalleryQuery,
     mut redis: ConnectionManager,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    if !is_authorized(auth.as_deref()) {
-        return Ok(json_error(StatusCode::UNAUTHORIZED, "unauthorized"));
-    }
-
     let cache_ttl_seconds = cache_ttl_seconds();
     let limit = request.limit.unwrap_or(50);
-    let source = match normalize_source(request.source) {
-        Ok(source) => source,
-        Err(message) => return Ok(json_error(StatusCode::BAD_REQUEST, message)),
-    };
-    let query = match normalize_query(request.tags, request.rating) {
-        Ok(query) => query,
-        Err(message) => return Ok(json_error(StatusCode::BAD_REQUEST, message)),
-    };
     if limit == 0 || limit > MAX_LIMIT {
         return Ok(json_error(StatusCode::BAD_REQUEST, "invalid limit"));
     }
-
-    let url = match build_url(&source, &query.terms, limit) {
-        Some(url) => url,
-        None => return Ok(json_error(StatusCode::BAD_REQUEST, "unsupported source")),
+    let target = match gallery_target(request, limit) {
+        Ok(target) => target,
+        Err(message) => return Ok(json_error(StatusCode::BAD_REQUEST, message)),
     };
 
-    let cache_key = cache_key(&source, &query.terms, limit);
+    let cache_key = cache_key(&target.cache_source, &target.cache_terms, limit);
     let cached: Result<Option<String>, _> = redis.get(&cache_key).await;
     let cached = match cached {
         Ok(value) => value,
@@ -107,13 +135,14 @@ pub async fn query(
         }
     }
 
-    let output = match run_gallery_dl(&url, limit).await {
+    let output = match run_gallery_dl(&target.url, limit).await {
         Ok(value) => value,
         Err(message) => {
             let _: Result<(), _> = redis.del(lock_key).await;
             return Ok(json_error(StatusCode::BAD_GATEWAY, message));
         }
     };
+    let output = normalize_gallery_output(output);
 
     let serialized = match serde_json::to_string(&output) {
         Ok(serialized) => serialized,
@@ -145,17 +174,46 @@ pub async fn query(
     ))
 }
 
-fn is_authorized(auth: Option<&str>) -> bool {
-    let Ok(token) = env::var("GALLERY_DL_TOKEN") else {
-        return true;
-    };
-
-    let expected = format!("Bearer {}", token);
-    auth == Some(expected.as_str())
-}
-
 struct NormalizedQuery {
     terms: Vec<String>,
+}
+
+fn gallery_target(request: GalleryQuery, limit: u16) -> Result<GalleryTarget, &'static str> {
+    if let Some(url) = request.url {
+        if request.source.is_some() || request.tags.is_some() || request.rating.is_some() {
+            return Err("url cannot be combined with source, tags, or rating");
+        }
+        let url = normalize_url(url)?;
+        return Ok(GalleryTarget {
+            cache_source: "url".to_string(),
+            cache_terms: vec![url.clone()],
+            url,
+        });
+    }
+
+    let source = match request.source {
+        Some(source) => normalize_source(source)?,
+        None => return Err("missing source or url"),
+    };
+    let query = normalize_query(request.tags, request.rating)?;
+    let url = match build_url(&source, &query.terms, limit) {
+        Some(url) => url,
+        None => return Err("unsupported source"),
+    };
+
+    Ok(GalleryTarget {
+        cache_source: source,
+        cache_terms: query.terms,
+        url,
+    })
+}
+
+fn normalize_url(url: String) -> Result<String, &'static str> {
+    let url = url.trim().to_string();
+    if url.len() > 2048 || !url.starts_with("https://") || url.contains('\0') {
+        return Err("invalid url");
+    }
+    Ok(url)
 }
 
 fn normalize_source(source: String) -> Result<String, &'static str> {
@@ -291,6 +349,111 @@ fn cache_key(source: &str, tags: &[String], limit: u16) -> String {
     format!("gallery:v1:result:{}", hex)
 }
 
+fn normalize_gallery_output(value: serde_json::Value) -> GalleryResponse {
+    let mut items = Vec::new();
+    let mut errors = Vec::new();
+    let mut pending_metadata: Option<serde_json::Value> = None;
+
+    let serde_json::Value::Array(events) = value else {
+        return GalleryResponse { items, errors };
+    };
+
+    for event in events {
+        let serde_json::Value::Array(fields) = event else {
+            continue;
+        };
+        let Some(code) = fields.first().and_then(serde_json::Value::as_i64) else {
+            continue;
+        };
+
+        match code {
+            -1 => {
+                if let Some(metadata) = fields.get(1).cloned() {
+                    errors.push(gallery_error(metadata));
+                }
+            }
+            2 => {
+                pending_metadata = fields.get(1).cloned();
+            }
+            3 => {
+                let url = fields
+                    .get(1)
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string);
+                let metadata = fields
+                    .get(2)
+                    .cloned()
+                    .or_else(|| pending_metadata.clone())
+                    .unwrap_or(serde_json::Value::Null);
+                items.push(gallery_item(url, metadata));
+                pending_metadata = None;
+            }
+            _ => {}
+        }
+    }
+
+    if items.is_empty() {
+        if let Some(metadata) = pending_metadata {
+            items.push(gallery_item(None, metadata));
+        }
+    }
+
+    GalleryResponse { items, errors }
+}
+
+fn gallery_item(url: Option<String>, metadata: serde_json::Value) -> GalleryItem {
+    GalleryItem {
+        url,
+        source: metadata_string(&metadata, "category"),
+        category: metadata_string(&metadata, "category"),
+        subcategory: metadata_string(&metadata, "subcategory"),
+        id: metadata.get("id").cloned(),
+        title: metadata_string(&metadata, "title"),
+        filename: metadata_string(&metadata, "filename"),
+        extension: metadata_string(&metadata, "extension")
+            .or_else(|| metadata_string(&metadata, "file_ext")),
+        file_url: metadata_string(&metadata, "file_url"),
+        preview_url: metadata_string(&metadata, "preview_url")
+            .or_else(|| metadata_string(&metadata, "preview_file_url")),
+        sample_url: metadata_string(&metadata, "sample_url"),
+        width: metadata_u64(&metadata, "width").or_else(|| metadata_u64(&metadata, "image_width")),
+        height: metadata_u64(&metadata, "height")
+            .or_else(|| metadata_u64(&metadata, "image_height")),
+        rating: metadata_string(&metadata, "rating"),
+        score: metadata_i64(&metadata, "score"),
+        tags: metadata.get("tags").cloned(),
+        created_at: metadata.get("created_at").cloned(),
+        metadata,
+    }
+}
+
+fn gallery_error(metadata: serde_json::Value) -> GalleryExtractorError {
+    GalleryExtractorError {
+        error: metadata_string(&metadata, "error"),
+        message: metadata_string(&metadata, "message"),
+        metadata,
+    }
+}
+
+fn metadata_string(metadata: &serde_json::Value, key: &str) -> Option<String> {
+    metadata
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+}
+
+fn metadata_u64(metadata: &serde_json::Value, key: &str) -> Option<u64> {
+    metadata
+        .get(key)
+        .and_then(|value| value.as_u64().or_else(|| value.as_str()?.parse().ok()))
+}
+
+fn metadata_i64(metadata: &serde_json::Value, key: &str) -> Option<i64> {
+    metadata
+        .get(key)
+        .and_then(|value| value.as_i64().or_else(|| value.as_str()?.parse().ok()))
+}
+
 async fn run_gallery_dl(url: &str, limit: u16) -> Result<serde_json::Value, &'static str> {
     let worker_url =
         env::var("GALLERY_DL_WORKER_URL").map_err(|_| "GALLERY_DL_WORKER_URL is not configured")?;
@@ -352,4 +515,43 @@ fn json_error(status: StatusCode, message: &str) -> Response<String> {
         },
         None,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn normalizes_download_events() {
+        let response = normalize_gallery_output(json!([
+            [2, {"category": "danbooru", "id": 123, "image_width": 800, "image_height": 600}],
+            [3, "https://example.test/file.jpg", {"category": "danbooru", "id": 123, "file_ext": "jpg"}]
+        ]));
+
+        assert_eq!(response.items.len(), 1);
+        assert_eq!(response.errors.len(), 0);
+        assert_eq!(
+            response.items[0].url.as_deref(),
+            Some("https://example.test/file.jpg")
+        );
+        assert_eq!(response.items[0].category.as_deref(), Some("danbooru"));
+        assert_eq!(response.items[0].extension.as_deref(), Some("jpg"));
+    }
+
+    #[test]
+    fn normalizes_error_events() {
+        let response = normalize_gallery_output(json!([[
+            -1,
+            {"error": "AuthRequired", "message": "credentials missing"}
+        ]]));
+
+        assert_eq!(response.items.len(), 0);
+        assert_eq!(response.errors.len(), 1);
+        assert_eq!(response.errors[0].error.as_deref(), Some("AuthRequired"));
+        assert_eq!(
+            response.errors[0].message.as_deref(),
+            Some("credentials missing")
+        );
+    }
 }

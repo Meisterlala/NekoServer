@@ -22,7 +22,7 @@ This Server keeps track of how many images were displayed with the [Neko Fans](h
 
 ### Gallery query API
 
-`POST /gallery/query` runs a constrained `gallery-dl` JSON query through the internal worker and caches the worker result in Redis.
+`POST /gallery/query` runs a constrained `gallery-dl` JSON query through the internal worker, normalizes the result shape, and caches the normalized result in Redis.
 
 Request body:
 
@@ -39,26 +39,51 @@ Fields:
 
 | Field    | Required | Description                                                                                                                                                                                                        |
 | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `source` | yes      | One of `danbooru`, `gelbooru`, `safebooru`, `konachan`, or `yandere`.                                                                                                                                              |
+| `source` | yes, unless `url` is set | One of `danbooru`, `gelbooru`, `safebooru`, `konachan`, or `yandere`.                                                                                                                                              |
+| `url`    | yes, unless `source` is set | Direct `https://` URL for any `gallery-dl` extractor. This cannot be combined with `source`, `rating`, or `tags`.                                                                                                  |
 | `rating` | no       | Convenience field for a booru rating tag such as `safe`, `questionable`, or `explicit`. `rating:safe` is also accepted and normalized to `safe`. The worker receives this as a normal `rating:<value>` search tag. |
 | `tags`   | no       | Up to 20 tag strings. Tags may contain ASCII letters, numbers, `_`, `-`, and `:`. Existing clients may still pass rating filters as tags, for example `rating:safe`.                                               |
 | `limit`  | no       | Number of gallery-dl items to request. Defaults to `50`; maximum is `100`.                                                                                                                                         |
 
-At least one query term is required: either `rating` or one `tags` entry.
+For `source` queries, at least one query term is required: either `rating` or one `tags` entry.
 
 Response body:
 
 ```json
-[]
+{
+  "items": [
+    {
+      "url": "https://cdn.example/image.jpg",
+      "source": "danbooru",
+      "category": "danbooru",
+      "subcategory": "post",
+      "id": 123,
+      "title": null,
+      "filename": "image",
+      "extension": "jpg",
+      "file_url": "https://cdn.example/image.jpg",
+      "preview_url": "https://cdn.example/preview.jpg",
+      "sample_url": null,
+      "width": 1200,
+      "height": 900,
+      "rating": "s",
+      "score": 42,
+      "tags": ["cat_girl"],
+      "created_at": "2026-05-24T10:00:00Z",
+      "metadata": {}
+    }
+  ],
+  "errors": []
+}
 ```
 
-The response body is exactly the JSON value returned by `gallery-dl`.
+The server consumes `gallery-dl -J` event rows such as `[2, metadata]`, `[3, url, metadata]`, and `[-1, error]`, then returns a stable object. Source-specific fields are preserved under `metadata`.
 
 Caching behavior:
 
 | Setting                        | Default | Description                                                                                                                  |
 | ------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `GALLERY_DL_CACHE_TTL_SECONDS` | `900`   | Redis result cache TTL for normalized `source` + query terms + `limit`.                                                      |
+| `GALLERY_DL_CACHE_TTL_SECONDS` | `900`   | Redis result cache TTL for normalized query target + `limit`.                                                                |
 | worker lock TTL                | `30`    | Short Redis lock used to avoid duplicate worker calls for the same cache key. Concurrent identical misses return HTTP `202`. |
 
 Successful responses are always backed by Redis: either `X-Server-Cache: HIT` or the worker result is written to Redis before returning `X-Server-Cache: MISS`. `X-Server-Cache-Ttl-Seconds` reports the remaining server-side TTL. HTTP responses include `Cache-Control: no-store` because this is a POST endpoint whose response varies by request body; caching is server-side in Redis, not browser/proxy caching.

@@ -68,9 +68,9 @@ def main() -> int:
         response, headers = run_query(args.server_url, query)
         if response is None:
             return 1
-        if not isinstance(response, list):
+        if not is_normalized_gallery_response(response):
             print(
-                f"failed {query['name']}: expected gallery-dl JSON list",
+                f"failed {query['name']}: expected normalized gallery response",
                 file=sys.stderr,
             )
             return 1
@@ -85,7 +85,10 @@ def main() -> int:
                 f"failed {query['name']}: expected server cache header", file=sys.stderr
             )
             return 1
-        print(f"ok {query['name']}: server-cache={headers.get('X-Server-Cache')}")
+        items = response.get("items", []) if isinstance(response, dict) else []
+        print(
+            f"ok {query['name']}: server-cache={headers.get('X-Server-Cache')} items={len(items)}"
+        )
 
     return 0
 
@@ -119,6 +122,21 @@ def post_json(url: str, value: dict):
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.loads(response.read()), response.headers
+
+
+def is_normalized_gallery_response(response) -> bool:
+    if not isinstance(response, dict):
+        return False
+    if not isinstance(response.get("items"), list):
+        return False
+    if not isinstance(response.get("errors"), list):
+        return False
+    for item in response["items"]:
+        if not isinstance(item, dict):
+            return False
+        if "url" not in item or "metadata" not in item:
+            return False
+    return True
 
 
 if __name__ == "__main__":

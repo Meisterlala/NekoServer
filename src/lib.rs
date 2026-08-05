@@ -190,7 +190,6 @@ pub async fn init(port: u16) {
     let gallery_query = warp::path("gallery")
         .and(warp::path("query"))
         .and(warp::post())
-        .and(warp::header::optional::<String>("authorization"))
         .and(warp::body::content_length_limit(16 * 1024))
         .and(warp::body::json())
         .and(with_redis(redis.clone()))
