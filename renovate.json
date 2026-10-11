@@ -3,7 +3,8 @@
   "extends": ["config:recommended"],
   "minimumReleaseAge": "2 days",
   "internalChecksFilter": "strict",
-  "schedule": ["before 6am"],
+  "schedule": ["* 0-5 * * 1"],
+  "updateNotScheduled": false,
   "prConcurrentLimit": 1,
   "prHourlyLimit": 1,
   "packageRules": [
